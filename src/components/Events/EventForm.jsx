@@ -1,9 +1,16 @@
-import { useState } from 'react';
-
-import ImagePicker from '../ImagePicker.jsx';
+import { useState } from "react";
+import ImagePicker from "../ImagePicker.jsx";
+import { fetchSelectableImages } from "../../utils/http.js";
+import { useQuery } from "@tanstack/react-query";
+import ErrorBlock from "./../UI/ErrorBlock";
 
 export default function EventForm({ inputData, onSubmit, children }) {
   const [selectedImage, setSelectedImage] = useState(inputData?.image);
+
+  const { data, isPending, isError, error } = useQuery({
+    queryKey: ["event-images"],
+    queryFn: fetchSelectableImages,
+  });
 
   function handleSelectImage(image) {
     setSelectedImage(image);
@@ -22,29 +29,20 @@ export default function EventForm({ inputData, onSubmit, children }) {
     <form id="event-form" onSubmit={handleSubmit}>
       <p className="control">
         <label htmlFor="title">Title</label>
-        <input
-          type="text"
-          id="title"
-          name="title"
-          defaultValue={inputData?.title ?? ''}
-        />
+        <input type="text" id="title" name="title" defaultValue={inputData?.title ?? ""} />
       </p>
 
-      <div className="control">
-        <ImagePicker
-          images={[]}
-          onSelect={handleSelectImage}
-          selectedImage={selectedImage}
-        />
-      </div>
+      {isPending && "Waiting..."}
+      {isError && <ErrorBlock title="An error occurred" message={error.info?.message} />}
+      {data && (
+        <div className="control">
+          <ImagePicker images={data} onSelect={handleSelectImage} selectedImage={selectedImage} />
+        </div>
+      )}
 
       <p className="control">
         <label htmlFor="description">Description</label>
-        <textarea
-          id="description"
-          name="description"
-          defaultValue={inputData?.description ?? ''}
-        />
+        <textarea id="description" name="description" defaultValue={inputData?.description ?? ""} />
       </p>
 
       <div className="controls-row">
@@ -54,7 +52,7 @@ export default function EventForm({ inputData, onSubmit, children }) {
             type="date"
             id="date"
             name="date"
-            defaultValue={inputData?.date ?? ''}
+            defaultValue={inputData?.date ?? new Date().toISOString().split("T")[0]}
           />
         </p>
 
@@ -64,19 +62,14 @@ export default function EventForm({ inputData, onSubmit, children }) {
             type="time"
             id="time"
             name="time"
-            defaultValue={inputData?.time ?? ''}
+            defaultValue={inputData?.time ?? new Date().toISOString().split("T")[1].slice(0, 5)}
           />
         </p>
       </div>
 
       <p className="control">
         <label htmlFor="location">Location</label>
-        <input
-          type="text"
-          id="location"
-          name="location"
-          defaultValue={inputData?.location ?? ''}
-        />
+        <input type="text" id="location" name="location" defaultValue={inputData?.location ?? ""} />
       </p>
 
       <p className="form-actions">{children}</p>
