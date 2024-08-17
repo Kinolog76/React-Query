@@ -5,17 +5,29 @@ import { fetchEvent, deleteEvent, queryClient } from "../../utils/http.js";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import LoadingIndicator from "./../UI/LoadingIndicator";
 import ErrorBlock from "./../UI/ErrorBlock";
+import { useState } from "react";
+import Modal from "../UI/Modal.jsx";
 
 export default function EventDetails() {
+  const [deleting, setDeleting] = useState(false);
   const { id } = useParams();
   const navigate = useNavigate();
 
+  function handleDeleting() {
+    setDeleting((prev) => !prev);
+  }
+
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["event-post", { search: id }],
+    queryKey: ["events", id ],
     queryFn: ({ signal }) => fetchEvent({ signal, id }),
   });
 
-  const { mutate } = useMutation({
+  const {
+    mutate,
+    isPending: isPendingDeletion,
+    isError: isErrorDeleting,
+    error: errorDeleting,
+  } = useMutation({
     mutationFn: deleteEvent,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["events"], refetchType: "none" });
@@ -30,6 +42,29 @@ export default function EventDetails() {
 
   return (
     <>
+      {deleting && (
+        <Modal>
+          {(isPendingDeletion && <h2>Deleting, please wait...</h2>) || (
+            <h2>Do you want delete event?</h2>
+          )}
+
+          <div className="form-actions">
+            {!isPendingDeletion && (
+              <p>
+                <button onClick={handleDeleting} className="button-text">
+                  No
+                </button>
+                <button onClick={() => handleDelete(id)} className="button">
+                  Yes
+                </button>
+              </p>
+            )}
+          </div>
+          {isErrorDeleting && (
+            <ErrorBlock title="An error occurred" message={errorDeleting.info?.message} />
+          )}
+        </Modal>
+      )}
       <Outlet />
       <Header>
         <Link to="/events" className="nav-item">
@@ -47,7 +82,7 @@ export default function EventDetails() {
           <header>
             <h1>{data.title}</h1>
             <nav>
-              <button onClick={() => handleDelete(id)}>Delete</button>
+              <button onClick={handleDeleting}>Delete</button>
               <Link to="edit">Edit</Link>
             </nav>
           </header>
